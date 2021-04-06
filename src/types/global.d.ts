@@ -1,8 +1,10 @@
-declare const $_ENV: { name: string };
-
-type Matrix<T> = Array<Array<T>>;
-
-interface IAction {
-	type: "",
-	do: () => Matrix<[number, number, number, number]>
+interface Window {
+	utils: {
+		async setDisk(data: string): void
+		getDisk(): string
+		openExternal(href: string): void;
+	}
 }
+
+declare const $_ENV: { name: string };
+declare const $_PLATFORM: { name: string };

@@ -9,11 +9,13 @@ module.exports = (grunt) => {
 	/* eslint-disable import/no-dynamic-require*/
 	require("load-grunt-tasks")(grunt);
 
+	const platform = require(`./config/plat_${grunt.option("platform") || "electron"}.json`);
 	const env = require(`./config/env_${grunt.option("env") || "development"}.json`);
 
 	const jsccMix = {
 		values: {
 			_ENV: env,
+			_PLATFORM: platform,
 		},
 		sourceMap: false,
 	};
@@ -27,8 +29,12 @@ module.exports = (grunt) => {
 		outbase: "jscc_temp/src",
 		sourcemap: true,
 		minify: env.normalName !== "development",
-		external: ["canvas"],
-		target: "node12.9",
+		jsxFactory: "h",
+		jsxFragment: "Fragment",
+		inject: ["./build/preact-shim.js"],
+		loader: {
+			".js": "jsx",
+		},
 	};
 	grunt.initConfig({
 		pkg: grunt.file.readJSON("package.json"),
@@ -39,6 +45,21 @@ module.exports = (grunt) => {
 				options: {
 					debounceDelay: 700,
 				},
+			},
+		},
+		shell: {
+			preunit: {
+				command: "webpack --config=build/webpack.unit.config.js --env=test --display=none",
+			},
+			unit: {
+				command: "electron-mocha temp/specs.js --renderer --require source-map-support/register",
+			},
+			pree2e: {
+				command:
+					"webpack --config=build/webpack.app.config.js --env=test --display=none && webpack --config=build/webpack.e2e.config.js --env=test --display=none",
+			},
+			e2e: {
+				command: "mocha temp/e2e.js --require source-map-support/register",
 			},
 		},
 		eslint: {
@@ -53,10 +74,22 @@ module.exports = (grunt) => {
 				out: "jscc_temp",
 				...jsccMix,
 			},
+			static: {
+				inpaths: ["app/*.*"],
+				out: "app",
+				eatDir: "app",
+				...jsccMix,
+			},
 		},
 		esbuild: {
 			main: {
 				platform: "node",
+				entryPoints: ["jscc_temp/src/background.js"],
+				external: ["electron", "electron-unhandled", "fs-jetpack"],
+				...esbuildMix,
+			},
+			renderer: {
+				platform: "browser",
 				entryPoints: ["jscc_temp/src/app.js"],
 				...esbuildMix,
 			},
@@ -109,8 +142,18 @@ module.exports = (grunt) => {
 		return success;
 	});
 
+	grunt.registerTask("electron", "super simple", () => {
+		// @ts-ignore
+		require("child_process").spawn(require("electron"), ["."], { stdio: "inherit" });
+	});
+
+	grunt.registerTask("softstatic", ["copy:static", "jscc:static"]);
+	grunt.registerTask("softbuild", ["jscc:dev", "softstatic", "esbuild:main", "esbuild:renderer"]);
 	grunt.registerTask("lint", ["eslint"]);
-	grunt.registerTask("build", ["jscc:dev", "esbuild:main", "clean:jscc_temp"]);
+	grunt.registerTask("rbuild", ["softbuild", "clean:jscc_temp"]);
+	grunt.registerTask("build", ["rbuild", "electron", "watch:dev"]);
+	grunt.registerTask("unit", ["shell:preunit", "shell:unit"]);
+	grunt.registerTask("e2e", ["shell:pree2e", "shell:e2e"]);
 	grunt.registerTask("test", [
 		/* "unit", "e2e"*/
 	]);

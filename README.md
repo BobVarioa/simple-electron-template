@@ -1,14 +1,15 @@
-# Tier Retierer
+# Simple Electron Template
+
 ## Quick start
 
 Make sure you have [Node.js](https://nodejs.org) installed, then type the following commands...
 ```
-git clone https://github.com/MasterOfBob777/tier-retierer.git
+git clone https://github.com/MasterOfBob777/simple-electron-template.git
 cd simple-electron-template
 npm i
 npm start
 ```
-...and the project should now run! The output files will now be in the `out` directory.
+...and you have a running desktop application on your screen.
 
 You may or may not need to also run the following command if you don't have the grunt cli already installed.
 ```
